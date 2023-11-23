@@ -229,11 +229,11 @@ where
 mod test {
     use super::*;
 
-    impl DisplayLabel for i32 {
-        fn label(&self) -> String {
-            self.to_string()
-        }
-    }
+    // impl DisplayLabel for i32 {
+    //     fn label(&self) -> String {
+    //         self.to_string()
+    //     }
+    // }
 
     #[test]
     fn can_in_order_to_vec() {
