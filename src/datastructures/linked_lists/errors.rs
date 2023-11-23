@@ -1,6 +1,3 @@
 pub enum LinkedListError {
-    IndexOutOfBounds {
-        max: usize,
-        given: usize,
-    },
+    IndexOutOfBounds { max: usize, given: usize },
 }

@@ -1,2 +1,2 @@
-pub mod datastructures;
 pub mod algorithms;
+pub mod datastructures;

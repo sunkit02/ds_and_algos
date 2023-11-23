@@ -3,18 +3,18 @@ use std::fmt::Debug;
 use super::errors::LinkedListError;
 
 #[derive(Clone)]
-pub struct SinglyLinkedList<T: Debug + PartialEq> {
+pub struct SinglyLinkedList<T> {
     head: Option<Box<Node<T>>>,
     length: usize,
 }
 
 #[derive(Debug, Clone)]
-struct Node<T: Debug + PartialEq> {
+struct Node<T> {
     value: T,
     next: Option<Box<Node<T>>>,
 }
 
-impl<T: Debug + PartialEq> SinglyLinkedList<T> {
+impl<T> SinglyLinkedList<T> {
     pub fn new() -> Self {
         Self {
             head: None,
@@ -22,9 +22,9 @@ impl<T: Debug + PartialEq> SinglyLinkedList<T> {
         }
     }
 
-    pub fn from_iter<I>(mut iter: I) -> Self 
+    pub fn from_iter<I>(mut iter: I) -> Self
     where
-        I: Iterator<Item = T>
+        I: Iterator<Item = T>,
     {
         let mut list = Self::new();
 
@@ -35,11 +35,11 @@ impl<T: Debug + PartialEq> SinglyLinkedList<T> {
         return list;
     }
 
-    pub fn insert(&mut self, value: T, index: usize) -> Result<(), LinkedListError>{
+    pub fn insert(&mut self, value: T, index: usize) -> Result<(), LinkedListError> {
         if index > self.length {
-            return Err(LinkedListError::IndexOutOfBounds { 
+            return Err(LinkedListError::IndexOutOfBounds {
                 max: self.length,
-                given: index, 
+                given: index,
             });
         }
 
@@ -52,9 +52,9 @@ impl<T: Debug + PartialEq> SinglyLinkedList<T> {
             let mut curr_node = &mut self.head;
             while let Some(node) = curr_node {
                 if i == index - 1 {
-                    let new_node = Node { 
+                    let new_node = Node {
                         value,
-                        next: node.next.take() 
+                        next: node.next.take(),
                     };
                     node.next = Some(Box::new(new_node));
                     break;
@@ -84,7 +84,6 @@ impl<T: Debug + PartialEq> SinglyLinkedList<T> {
     }
 
     pub fn insert_back(&mut self, value: T) {
-
         let new_node = Some(Box::new(Node { value, next: None }));
         if self.head.is_some() {
             let mut curr_node = &mut self.head;
@@ -116,7 +115,7 @@ impl<T: Debug + PartialEq> SinglyLinkedList<T> {
 
         match curr_node.as_deref() {
             Some(node) => Some(&node.value),
-            None => None
+            None => None,
         }
     }
 
@@ -125,18 +124,6 @@ impl<T: Debug + PartialEq> SinglyLinkedList<T> {
         self.length = 0;
     }
 
-    pub fn contains(&self, value: T) -> bool {
-        let mut curr_node = &self.head;
-        while let Some(node) = curr_node {
-            if node.value == value {
-                return true;
-            }
-
-            curr_node = &node.next;
-        }
-
-        return false;
-    }
 
     pub fn len(&self) -> usize {
         self.length
@@ -171,7 +158,22 @@ impl<T: Debug + PartialEq> SinglyLinkedList<T> {
     }
 }
 
-impl<T: Debug + PartialEq> Debug for SinglyLinkedList<T> {
+impl<T: PartialEq> SinglyLinkedList<T> {
+    pub fn contains(&self, value: T) -> bool {
+        let mut curr_node = &self.head;
+        while let Some(node) = curr_node {
+            if node.value == value {
+                return true;
+            }
+
+            curr_node = &node.next;
+        }
+
+        return false;
+    }
+}
+
+impl<T: Debug> Debug for SinglyLinkedList<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("[")?;
         let mut curr_node = &self.head;
