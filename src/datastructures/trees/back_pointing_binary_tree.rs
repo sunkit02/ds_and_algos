@@ -1,4 +1,5 @@
 use std::{fmt::Debug, rc::{Weak, Rc}, cell::RefCell, borrow::BorrowMut};
+use std::cmp;
 
 #[derive(Debug)]
 pub struct BackPointingBinaryTree<T: Debug + PartialEq> {
@@ -85,8 +86,29 @@ impl<T: Debug + PartialEq + PartialOrd> BackPointingBinaryTree<T> {
         return self.size;
     }
 
-    pub fn height(&self, value: T) {
-        todo!()
+    pub fn height(&self) -> usize {
+        match &self.root {
+            Some(root) => {
+                Self::height_recur(root.clone()) - 1
+            }
+            None => 0
+        }
+    }
+
+    fn height_recur(root: Rc<RefCell<Node<T>>>) -> usize {
+        let root = root.as_ref().borrow();
+
+        let left_height = match &root.left {
+            Some(left_node) =>  Self::height_recur(left_node.clone()),
+            None => 0,
+        };
+
+        let right_height = match &root.right {
+            Some(right_node) =>  Self::height_recur(right_node.clone()),
+            None => 0,
+        };
+
+        return 1 + cmp::max(left_height, right_height);
     }
 
     pub fn to_vec_in_order(self) -> Vec<T> {
@@ -119,25 +141,39 @@ impl<T: Debug + PartialEq + PartialOrd> BackPointingBinaryTree<T> {
     pub fn to_vec_post_order(self) -> Vec<T> {
         todo!()
     }
-}
 
-#[cfg(test)]
-mod test {
-    use super::*;
-    fn tree(vec: Vec<i32>) -> BackPointingBinaryTree<i32> {
+    pub fn from_iter<I>(iterator: I) -> Self 
+    where 
+        I: Iterator<Item = T>
+    {
         let mut tree = BackPointingBinaryTree::new();
-        for item in vec {
+        for item in iterator {
             tree.insert(item);
         }
 
         return tree;
     }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
 
     #[test]
     fn can_in_order_to_vec() {
+        let tree = BackPointingBinaryTree::from_iter(vec![6, 4, 8, 2, 5, 1, 3, 7, 9, 10].into_iter());
+
         let expected = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        let tree = tree(vec![6, 4, 8, 2, 5, 1, 3, 7, 9, 10]);
 
         assert_eq!(tree.to_vec_in_order(), expected);
+    }
+
+    #[test]
+    fn can_get_height() {
+        let tree = BackPointingBinaryTree::from_iter(vec![6, 4, 8, 2, 5, 1, 3, 7, 9, 10].into_iter());
+
+        let expected = 3;
+
+        assert_eq!(tree.height(), expected);
     }
 }
