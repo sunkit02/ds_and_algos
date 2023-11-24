@@ -2,7 +2,7 @@ use std::cmp;
 use std::{
     borrow::BorrowMut,
     cell::RefCell,
-    fmt::{Debug, Display},
+    fmt::Debug,
     rc::{Rc, Weak},
 };
 
@@ -23,7 +23,7 @@ where
     T: Debug + PartialEq + PartialOrd + Clone,
 {
     value: Option<T>,
-    parent: Option<Weak<RefCell<Node<T>>>>,
+    _parent: Option<Weak<RefCell<Node<T>>>>,
     left: Option<Rc<RefCell<Node<T>>>>,
     right: Option<Rc<RefCell<Node<T>>>>,
 }
@@ -59,7 +59,7 @@ where
             None => {
                 self.root = Some(Rc::new(RefCell::new(Node {
                     value: Some(value),
-                    parent: None,
+                    _parent: None,
                     left: None,
                     right: None,
                 })));
@@ -79,7 +79,7 @@ where
                     None => {
                         root_node.left = Some(Rc::new(RefCell::new(Node {
                             value: Some(value),
-                            parent: Some(Rc::downgrade(&root)),
+                            _parent: Some(Rc::downgrade(&root)),
                             left: None,
                             right: None,
                         })));
@@ -91,7 +91,7 @@ where
                     None => {
                         root_node.right = Some(Rc::new(RefCell::new(Node {
                             value: Some(value),
-                            parent: Some(Rc::downgrade(&root)),
+                            _parent: Some(Rc::downgrade(&root)),
                             left: None,
                             right: None,
                         })));
@@ -103,7 +103,7 @@ where
         }
     }
 
-    pub fn remove(&mut self, value: T) {
+    pub fn remove(&mut self, _value: T) {
         todo!()
     }
 
