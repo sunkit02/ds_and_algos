@@ -1,8 +1,6 @@
 use std::ptr::NonNull;
 use std::fmt::Debug;
 
-use super::errors::LinkedListError;
-
 pub struct SinglyLinkedList<T> {
     head: Option<NonNull<Node<T>>>,
     tail: Option<NonNull<Node<T>>>,
@@ -37,21 +35,39 @@ impl<T> SinglyLinkedList<T> {
         let mut list = Self::new();
 
         while let Some(value) = iter.next() {
-            list.insert_back(value);
+            list.push_back(value);
         }
 
         return list;
     }
 
-    pub fn insert(&mut self, value: T, index: usize) -> Result<(), LinkedListError> {
+    pub fn insert(&mut self, _value: T, index: usize) {
+        if index > self.length {
+            panic!("Index out of bounds.");
+        }
         todo!()
     }
 
-    pub fn insert_front(&mut self, value: T) {
-        todo!()
+    pub fn push_front(&mut self, value: T) {
+        let node_ptr = Box::leak(Box::new(Node::new(value)));
+        let node = NonNull::new(node_ptr);
+
+        match self.head {
+            Some(_) => unsafe {
+                let node = node.unwrap().as_ptr();
+                (*node).next = self.head;
+            }
+            None => {
+                self.tail = node;
+            }
+        }
+
+        self.head = node;
+        self.length += 1;
+
     }
 
-    pub fn insert_back(&mut self, value: T) {
+    pub fn push_back(&mut self, value: T) {
         let node_ptr = Box::leak(Box::new(Node::new(value)));
         let node = NonNull::new(node_ptr);
 
@@ -68,7 +84,7 @@ impl<T> SinglyLinkedList<T> {
         self.length += 1;
     }
 
-    pub fn get(&self, index: usize) -> Option<&T> {
+    pub fn get(&self, _index: usize) -> Option<&T> {
         todo!()
     }
 
@@ -135,14 +151,28 @@ impl<T: Debug> Debug for SinglyLinkedList<T> {
 
 #[cfg(test)]
 mod test {
-    use super::SinglyLinkedList;
+    use super::*;
 
     #[test]
-    fn can_construct_from_iterator() {
+    fn can_construct_from_iterator_and_to_vec() {
         let vec = vec![1, 2, 3, 4, 5, 6, 7];
         let iterator = vec.clone().into_iter();
 
         let linked_list = SinglyLinkedList::from_iter(iterator);
+
+        dbg!(&linked_list);
+
+        assert_eq!(linked_list.to_vec(), vec);
+    }
+
+    #[test]
+    fn can_push_front() {
+        let vec = vec![1, 2, 3, 4, 5, 6, 7];
+        let mut linked_list = SinglyLinkedList::new();
+
+        for n in vec.iter().rev() {
+            linked_list.push_front(*n);
+        }
 
         dbg!(&linked_list);
 
