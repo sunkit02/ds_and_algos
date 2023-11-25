@@ -31,7 +31,7 @@ impl<T> SinglyLinkedList<T> {
         return list;
     }
 
-    pub fn insert(&mut self, value: T, index: usize) {
+    pub fn insert(&mut self, index: usize, value: T) {
         if index > self.len {
             panic!("Index out of bounds.");
         }
@@ -297,12 +297,12 @@ mod test {
     #[test]
     fn can_insert() {
         let mut linked_list = SinglyLinkedList::new();
-        linked_list.insert(1, 0); // [1]
-        linked_list.insert(3, 1); // [1, 3]
-        linked_list.insert(5, 2); // [1, 3, 5]
+        linked_list.insert(0, 1); // [1]
+        linked_list.insert(1, 3); // [1, 3]
+        linked_list.insert(2, 5); // [1, 3, 5]
 
-        linked_list.insert(2, 1); // [1, 2, 3, 5]
-        linked_list.insert(4, 3); // [1, 2, 3, 4, 5]
+        linked_list.insert(1, 2); // [1, 2, 3, 5]
+        linked_list.insert(3, 4); // [1, 2, 3, 4, 5]
 
         assert_eq!(linked_list.get(0), Some(&1));
         assert_eq!(linked_list.get(1), Some(&2));
