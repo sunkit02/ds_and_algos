@@ -18,7 +18,13 @@ impl<T> RingBuffer<T> {
         I: IntoIterator<Item = T>,
     {
         return Self {
-            inner: VecDeque::from_iter(iter)
+            inner: VecDeque::from_iter(iter),
+        };
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        return Self { 
+            inner: VecDeque::with_capacity(capacity) ,
         };
     }
 
