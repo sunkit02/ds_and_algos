@@ -76,6 +76,10 @@ impl<T> RingBuffer<T> {
         return self.inner.len();
     }
 
+    pub fn make_contiguous(&mut self) -> &[T] {
+        return self.inner.make_contiguous();
+    }
+
     pub fn to_vec(self) -> Vec<T> {
         return self.inner.into_iter().collect();
     }
