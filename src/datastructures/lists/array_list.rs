@@ -1,4 +1,8 @@
-use std::{ptr::{NonNull, self}, alloc::{Layout, self}, panic};
+use std::{
+    alloc::{self, Layout},
+    panic,
+    ptr::{self, NonNull},
+};
 
 pub struct ArrayList<T> {
     buf: NonNull<T>,
@@ -19,7 +23,12 @@ impl<T> ArrayList<T> {
             NonNull::from(Box::leak(buf_ptr))
         };
 
-        Self { buf, capacity, layout, len: 0 }
+        Self {
+            buf,
+            capacity,
+            layout,
+            len: 0,
+        }
     }
 
     pub fn push(&mut self, value: T) {
@@ -34,7 +43,7 @@ impl<T> ArrayList<T> {
             self.len += 1;
         }
     }
-     pub fn pop(&mut self) -> Option<T> {
+    pub fn pop(&mut self) -> Option<T> {
         if self.len == 0 {
             return None;
         }
@@ -75,7 +84,7 @@ impl<T> Drop for ArrayList<T> {
     fn drop(&mut self) {
         unsafe {
             // FIX: Memory leak issue on drop
-            let _ = Box::from_raw(self.buf.as_ptr()); 
+            let _ = Box::from_raw(self.buf.as_ptr());
         };
     }
 }

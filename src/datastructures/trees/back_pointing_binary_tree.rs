@@ -196,7 +196,7 @@ where
 //             Self::get_display_tree_struct_recur(left_node.clone(), vec);
 //         }
 //
-//         // TODO: 
+//         // TODO:
 //         let label = root.value.take().unwrap().label();
 //         vec.push(NodeDisplayFormat {
 //             label,

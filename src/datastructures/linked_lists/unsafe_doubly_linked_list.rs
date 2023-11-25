@@ -1,5 +1,5 @@
-use std::ptr::NonNull;
 use std::fmt::Debug;
+use std::ptr::NonNull;
 
 pub struct DoublyLinkedList<T> {
     head: Option<NonNull<Node<T>>>,
@@ -16,7 +16,11 @@ struct Node<T> {
 
 impl<T> Node<T> {
     fn new(value: T) -> Self {
-        Self { value, next: None , prev: None }
+        Self {
+            value,
+            next: None,
+            prev: None,
+        }
     }
 }
 
@@ -80,7 +84,7 @@ impl<T> DoublyLinkedList<T> {
             Some(prev_head) => unsafe {
                 (*prev_head.as_ptr()).prev = Some(node);
                 (*node.as_ptr()).next = Some(prev_head);
-            }
+            },
             None => {
                 self.tail = Some(node);
             }
@@ -96,9 +100,9 @@ impl<T> DoublyLinkedList<T> {
 
         match self.tail {
             Some(tail) => unsafe {
-                (*tail.as_ptr()).next = Some(node); 
+                (*tail.as_ptr()).next = Some(node);
                 (*node.as_ptr()).prev = Some(tail);
-            }
+            },
             None => self.head = Some(node),
         }
 
@@ -116,27 +120,21 @@ impl<T> DoublyLinkedList<T> {
 
     pub fn get(&self, index: usize) -> Option<&T> {
         match self.get_node(index) {
-            Some(node_ptr) => unsafe { 
-                Some(&(*node_ptr.as_ptr()).value) 
-            }
+            Some(node_ptr) => unsafe { Some(&(*node_ptr.as_ptr()).value) },
             None => None,
         }
     }
 
     pub fn get_mut(&self, index: usize) -> Option<&mut T> {
         match self.get_node(index) {
-            Some(node_ptr) => unsafe { 
-                Some(&mut (*node_ptr.as_ptr()).value) 
-            }
+            Some(node_ptr) => unsafe { Some(&mut (*node_ptr.as_ptr()).value) },
             None => None,
         }
     }
 
     pub fn remove(&mut self, index: usize) -> Option<T> {
         match self.unlink_node(index) {
-            Some(node) => {
-                Some(node.value)
-            }
+            Some(node) => Some(node.value),
             None => None,
         }
     }
@@ -144,7 +142,6 @@ impl<T> DoublyLinkedList<T> {
     pub fn clear(&mut self) {
         while self.pop_front_node().is_some() {}
     }
-
 
     pub fn len(&self) -> usize {
         self.len
@@ -197,27 +194,27 @@ impl<T> DoublyLinkedList<T> {
         if index == 0 {
             match self.head {
                 Some(head) => node = Some(head),
-                None => {},
+                None => {}
             }
         } else if index == self.len {
             match self.tail {
                 Some(tail) => node = Some(tail),
-                None => {},
+                None => {}
             }
         } else {
             // Start traversing from the end closer to the target index
             // if index > self.len / 2 {
-                let mut itr = self.head;
-                let mut i = 0;
-                while let Some(itr_node) = itr {
-                    if i == index {
-                        node = Some(itr_node);
-                        break;
-                    }
-
-                    itr = unsafe { (*itr_node.as_ptr()).next };
-                    i += 1;
+            let mut itr = self.head;
+            let mut i = 0;
+            while let Some(itr_node) = itr {
+                if i == index {
+                    node = Some(itr_node);
+                    break;
                 }
+
+                itr = unsafe { (*itr_node.as_ptr()).next };
+                i += 1;
+            }
             // } else {
             //     let mut itr = self.tail;
             //     let mut i = self.len - 1;
@@ -358,7 +355,7 @@ mod test {
         let vec = vec![1, 2, 3, 4, 5, 6, 7];
         let linked_list = DoublyLinkedList::from_iter(vec.clone());
 
-        for idx in 0..linked_list.len()  {
+        for idx in 0..linked_list.len() {
             *linked_list.get_mut(idx).unwrap() += 1;
         }
 
@@ -478,7 +475,10 @@ mod test {
         while let Some(node) = curr_node {
             unsafe {
                 // verifiy each value
-                assert_eq!(&(*node.as_ptr()).value, iter.next_back().expect("Should have value"));
+                assert_eq!(
+                    &(*node.as_ptr()).value,
+                    iter.next_back().expect("Should have value")
+                );
 
                 if (*node.as_ptr()).prev.is_some() {
                     curr_node = &(*node.as_ptr()).prev;
@@ -492,5 +492,3 @@ mod test {
         assert_eq!(*curr_node, linked_list.head);
     }
 }
-
-

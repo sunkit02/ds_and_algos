@@ -1,5 +1,5 @@
-use std::ptr::NonNull;
 use std::fmt::Debug;
+use std::ptr::NonNull;
 
 pub struct SinglyLinkedList<T> {
     head: Option<NonNull<Node<T>>>,
@@ -10,7 +10,7 @@ pub struct SinglyLinkedList<T> {
 #[derive(Debug)]
 struct Node<T> {
     value: T,
-    next: Option<NonNull<Node<T>>>
+    next: Option<NonNull<Node<T>>>,
 }
 
 impl<T> Node<T> {
@@ -73,7 +73,7 @@ impl<T: Debug> SinglyLinkedList<T> {
             Some(_) => unsafe {
                 let node = node.as_ptr();
                 (*node).next = self.head;
-            }
+            },
             None => {
                 self.tail = Some(node);
             }
@@ -81,7 +81,6 @@ impl<T: Debug> SinglyLinkedList<T> {
 
         self.head = Some(node);
         self.len += 1;
-
     }
 
     pub fn push_back(&mut self, value: T) {
@@ -90,8 +89,8 @@ impl<T: Debug> SinglyLinkedList<T> {
 
         match self.tail {
             Some(tail) => unsafe {
-                (*tail.as_ptr()).next = Some(node); 
-            }
+                (*tail.as_ptr()).next = Some(node);
+            },
             None => self.head = Some(node),
         }
 
@@ -109,27 +108,21 @@ impl<T: Debug> SinglyLinkedList<T> {
 
     pub fn get(&self, index: usize) -> Option<&T> {
         match self.get_node(index) {
-            Some(node_ptr) => unsafe { 
-                Some(&(*node_ptr.as_ptr()).value) 
-            }
+            Some(node_ptr) => unsafe { Some(&(*node_ptr.as_ptr()).value) },
             None => None,
         }
     }
 
     pub fn get_mut(&self, index: usize) -> Option<&mut T> {
         match self.get_node(index) {
-            Some(node_ptr) => unsafe { 
-                Some(&mut (*node_ptr.as_ptr()).value) 
-            }
+            Some(node_ptr) => unsafe { Some(&mut (*node_ptr.as_ptr()).value) },
             None => None,
         }
     }
 
     pub fn remove(&mut self, index: usize) -> Option<T> {
         match self.unlink_node(index) {
-            Some(node) => {
-                Some(node.value)
-            }
+            Some(node) => Some(node.value),
             None => None,
         }
     }
@@ -137,7 +130,6 @@ impl<T: Debug> SinglyLinkedList<T> {
     pub fn clear(&mut self) {
         while self.pop_front_node().is_some() {}
     }
-
 
     pub fn len(&self) -> usize {
         self.len
@@ -191,12 +183,12 @@ impl<T> SinglyLinkedList<T> {
             if index == 0 {
                 match self.head {
                     Some(head) => node = Some(head),
-                    None => {},
+                    None => {}
                 }
             } else if index == self.len {
                 match self.tail {
                     Some(tail) => node = Some(tail),
-                    None => {},
+                    None => {}
                 }
             } else {
                 let mut itr = self.head;
@@ -235,7 +227,7 @@ impl<T> SinglyLinkedList<T> {
         if self.len <= 1 {
             return self.pop_front_node();
         }
-        
+
         match self.get_node(self.len - 2) {
             Some(prev_node) => unsafe {
                 let back_node = (*prev_node.as_ptr()).next;
@@ -344,7 +336,7 @@ mod test {
         let vec = vec![1, 2, 3, 4, 5, 6, 7];
         let linked_list = SinglyLinkedList::from_iter(vec.clone());
 
-        for idx in 0..linked_list.len()  {
+        for idx in 0..linked_list.len() {
             *linked_list.get_mut(idx).unwrap() += 1;
         }
 

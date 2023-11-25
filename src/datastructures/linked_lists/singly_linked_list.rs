@@ -14,10 +14,7 @@ struct Node<T> {
 
 impl<T> SinglyLinkedList<T> {
     pub fn new() -> Self {
-        Self {
-            head: None,
-            len: 0,
-        }
+        Self { head: None, len: 0 }
     }
 
     pub fn from_iter<I>(iter: I) -> Self
@@ -143,7 +140,6 @@ impl<T> SinglyLinkedList<T> {
                 curr_node = &node.next;
                 i += 1;
             }
-
         }
 
         match curr_node.as_deref() {
@@ -151,7 +147,7 @@ impl<T> SinglyLinkedList<T> {
             None => None,
         }
     }
-    
+
     pub fn get_mut(&self, _index: usize) -> Option<&mut T> {
         todo!("Don't know if possible")
     }
@@ -160,7 +156,6 @@ impl<T> SinglyLinkedList<T> {
         self.head.take();
         self.len = 0;
     }
-
 
     pub fn len(&self) -> usize {
         self.len
