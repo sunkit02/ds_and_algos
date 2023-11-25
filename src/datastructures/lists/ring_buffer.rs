@@ -10,7 +10,7 @@ impl<T> RingBuffer<T> {
     pub fn new() -> Self {
         return Self {
             inner: VecDeque::new(),
-        }
+        };
     }
 
     pub fn from_iter<I>(iter: I) -> Self
@@ -23,8 +23,8 @@ impl<T> RingBuffer<T> {
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        return Self { 
-            inner: VecDeque::with_capacity(capacity) ,
+        return Self {
+            inner: VecDeque::with_capacity(capacity),
         };
     }
 
@@ -52,11 +52,11 @@ impl<T> RingBuffer<T> {
         return self.inner.back();
     }
 
-    pub fn get(&self, index: usize) -> Option<&T>{
+    pub fn get(&self, index: usize) -> Option<&T> {
         return self.inner.get(index);
     }
 
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut T>{
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
         return self.inner.get_mut(index);
     }
 
@@ -84,7 +84,6 @@ impl<T> RingBuffer<T> {
         return self.inner.into_iter().collect();
     }
 }
-
 
 impl<T: PartialEq> RingBuffer<T> {
     pub fn find<P>(&self, p: P) -> Option<usize>

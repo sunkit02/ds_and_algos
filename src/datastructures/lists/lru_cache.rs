@@ -1,30 +1,29 @@
 use std::collections::HashSet;
-use std::hash::Hash;
 use std::fmt::Debug;
+use std::hash::Hash;
 
 use super::ring_buffer::RingBuffer;
 
 // TODO: Make `get` and `set` both O(1)
 pub struct LRUCache<K, V>
 where
-    K: Eq + PartialEq + Hash + Clone
+    K: Eq + PartialEq + Hash + Clone,
 {
     values: RingBuffer<(K, V)>,
     keys: HashSet<K>,
     max_size: usize,
 }
 
-
-impl<K, V> LRUCache<K, V> 
+impl<K, V> LRUCache<K, V>
 where
     K: Eq + PartialEq + Hash + Clone + Debug,
     V: PartialEq,
 {
     pub fn new(max_size: usize) -> Self {
-        return Self { 
+        return Self {
             values: RingBuffer::with_capacity(max_size + 1),
             keys: HashSet::with_capacity(max_size),
-            max_size
+            max_size,
         };
     }
 
@@ -34,12 +33,12 @@ where
             let value = self.values.remove(index).unwrap();
             self.values.push_front(value);
 
-            return self.values.front().map(|(_key, value)| value );
+            return self.values.front().map(|(_key, value)| value);
         } else {
             return None;
         }
     }
-    
+
     pub fn set(&mut self, key: &K, value: V) {
         if self.keys.contains(key) {
             let index = self.values.find(|(k, _)| k == key).unwrap();
@@ -69,7 +68,7 @@ where
     }
 
     pub fn as_slice(&mut self) -> &[(K, V)] {
-        return self.values.make_contiguous()
+        return self.values.make_contiguous();
     }
 }
 

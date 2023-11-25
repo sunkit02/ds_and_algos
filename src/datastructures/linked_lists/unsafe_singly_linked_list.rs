@@ -363,7 +363,7 @@ mod test {
         linked_list.insert(0, 1); // [1]
         linked_list.insert(1, 3); // [1, 3]
         linked_list.insert(2, 5); // [1, 3, 5]
-                               
+
         linked_list.insert(1, 2); // [1, 2, 3, 5]
         linked_list.insert(3, 4); // [1, 2, 3, 4, 5]
 
