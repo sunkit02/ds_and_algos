@@ -204,6 +204,7 @@ impl<T> SinglyLinkedList<T> {
                 while let Some(itr_node) = itr {
                     if i == index {
                         node = Some(itr_node);
+                        break;
                     }
 
                     itr = (*itr_node.as_ptr()).next;
