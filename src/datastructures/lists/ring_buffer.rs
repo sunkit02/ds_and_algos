@@ -85,6 +85,22 @@ impl<T> RingBuffer<T> {
     }
 }
 
+
+impl<T: PartialEq> RingBuffer<T> {
+    pub fn find<P>(&self, p: P) -> Option<usize>
+    where
+        P: Fn(&T) -> bool,
+    {
+        for (idx, v) in self.inner.iter().enumerate() {
+            if p(v) {
+                return Some(idx);
+            }
+        }
+
+        return None;
+    }
+}
+
 impl<T: Debug> Debug for RingBuffer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{:?}", self.inner))
