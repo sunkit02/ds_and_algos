@@ -8,7 +8,7 @@ pub struct DoublyLinkedList<T> {
     len: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Node<T> {
     value: T,
     next: Option<NonNull<Node<T>>>,
@@ -244,33 +244,25 @@ impl<T> DoublyLinkedList<T> {
 
     fn pop_front_node(&mut self) -> Option<Box<Node<T>>> {
         self.head.map(|prev_head| unsafe {
-            self.head = (*prev_head.as_ptr()).next;
-            (*prev_head.as_ptr()).next = None;
-
-            if let Some(new_head) = self.head {
-                (*new_head.as_ptr()).prev = None;
-            } else {
+            if let None = (*prev_head.as_ptr()).next {
                 self.tail = None;
             }
-
+            self.head = (*prev_head.as_ptr()).next;
             self.len -= 1;
-            return Box::from_raw(prev_head.as_ptr());
+
+            return Self::unlink_node(prev_head);
         })
     }
 
     fn pop_back_node(&mut self) -> Option<Box<Node<T>>> {
         self.tail.map(|prev_tail| unsafe {
-            self.tail = (*prev_tail.as_ptr()).prev;
-            (*prev_tail.as_ptr()).prev = None;
-
-            if let Some(new_tail) = self.tail {
-                (*new_tail.as_ptr()).next = None;
-            } else {
+            if let None = (*prev_tail.as_ptr()).prev {
                 self.head = None;
             }
-
+            self.tail = (*prev_tail.as_ptr()).prev;
             self.len -= 1;
-            return Box::from_raw(prev_tail.as_ptr());
+
+            return Self::unlink_node(prev_tail);
         })
     }
 
@@ -280,16 +272,11 @@ impl<T> DoublyLinkedList<T> {
         } else if index == self.len - 1 {
             return self.pop_back_node();
         } else {
-            match self.get_node(index - 1) {
-                Some(prev_node) => unsafe {
-                    let target_node = (*prev_node.as_ptr()).next.expect("Node should not be null");
-                    let next_node = (*target_node.as_ptr()).next;
-                    (*target_node.as_ptr()).next = None;
-                    (*prev_node.as_ptr()).next = next_node;
-
+            match self.get_node(index) {
+                Some(node) => {
                     self.len -= 1;
-                    return Some(Box::from_raw(target_node.as_ptr()));
-                },
+                    return Some(Self::unlink_node(node));
+                }
                 None => None,
             }
         }
@@ -313,10 +300,7 @@ impl<T> DoublyLinkedList<T> {
                 (*node.as_ptr()).next = None;
             }
 
-
-
-
-            return Box::from_raw(node.as_ptr()); 
+            return Box::from_raw(node.as_ptr());
         }
     }
 
@@ -521,14 +505,29 @@ mod test {
 
     #[test]
     fn can_remove() {
-        let mut linked_list = DoublyLinkedList::from_iter(vec![1, 2, 3, 4]);
+        let mut linked_list = DoublyLinkedList::from_iter(vec![1, 2, 3, 4, 5, 6]);
 
-        assert_eq!(linked_list.remove(linked_list.len() - 1), Some(4));
+        // Call pop_back_node()
+        assert_eq!(linked_list.remove(5), Some(6)); // Result: [1, 2, 3, 4, 5]
         can_walk_forward_and_back(&linked_list);
 
-        assert_eq!(linked_list.remove(linked_list.len() - 1), Some(3));
-        assert_eq!(linked_list.remove(1), Some(2));
-        assert_eq!(linked_list.remove(0), Some(1));
+        // Call unlink_node()
+        assert_eq!(linked_list.remove(3), Some(4)); // Result: [1, 2, 3, 5]
+        can_walk_forward_and_back(&linked_list);
+
+        // Call pop_back_node()
+        assert_eq!(linked_list.remove(3), Some(5)); // Result: [1, 2, 3]
+
+        // Call unlink_node()
+        assert_eq!(linked_list.remove(1), Some(2)); // Result: [1, 3]
+
+        // Call pop_back_node()
+        assert_eq!(linked_list.remove(1), Some(3)); // Result: [1]
+
+        // Call pop_front_node()
+        assert_eq!(linked_list.remove(0), Some(1)); // Result: []
+
+        // Empty
         assert_eq!(linked_list.remove(0), None);
         assert_eq!(linked_list.len(), 0);
     }
@@ -763,7 +762,12 @@ mod test {
         }
 
         // Assert curr_node is tail
-        assert_eq!(*curr_node, linked_list.tail);
+        unsafe {
+            assert_eq!(
+                (*curr_node.unwrap().as_ptr()),
+                (*linked_list.tail.unwrap().as_ptr())
+            );
+        }
 
         // Walk from tail to head
         let mut iter = values.into_iter();
