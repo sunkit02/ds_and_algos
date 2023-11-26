@@ -293,9 +293,25 @@ impl<T> DoublyLinkedList<T> {
             }
         }
     }
-    
-    /// WARN: This method does not check if `node` is part of the linked list.
-    pub(crate) unsafe fn unlink_node_unchecked(&mut self, node: NonNull<Node<T>>) -> NonNull<Node<T>> {
+
+    /// WARN: This method does not thoroughly check if `node` is part of the linked list.
+    pub(crate) unsafe fn unlink_node_unchecked(
+        &mut self,
+        node: NonNull<Node<T>>,
+    ) -> NonNull<Node<T>> {
+        // Ensure that `self.head` and `self.tail` pointers will get
+        // handled appropriately when unlinking head and tail nodes
+        if let Some(head_node) = self.head {
+            if node == head_node {
+                return self.pop_front_node().unwrap();
+            }
+        } 
+        if let Some(tail_node) = self.tail {
+            if node == tail_node {
+                return self.pop_back_node().unwrap();
+            }
+        }
+
         self.len -= 1;
         return Self::unlink_node(node);
     }
@@ -325,7 +341,10 @@ impl<T> DoublyLinkedList<T> {
     /// Links `new_node` after node `after` and returns a `NonNull` pointer to `new_node`
     /// WARN: This method does not update the length or any other internal state
     /// of the linked list.
-    unsafe fn link_node_after(after: NonNull<Node<T>>, new_node: NonNull<Node<T>>) -> NonNull<Node<T>> {
+    unsafe fn link_node_after(
+        after: NonNull<Node<T>>,
+        new_node: NonNull<Node<T>>,
+    ) -> NonNull<Node<T>> {
         let next_node = (*after.as_ptr()).next;
 
         if let Some(next) = next_node {
@@ -343,7 +362,10 @@ impl<T> DoublyLinkedList<T> {
     /// Links `new_node` before node `before` and returns a `NonNull` pointer to `new_node`
     /// WARN: This method does not update the length or any other internal state
     /// of the linked list.
-    unsafe fn link_node_before(before: NonNull<Node<T>>, new_node: NonNull<Node<T>>) -> NonNull<Node<T>> {
+    unsafe fn link_node_before(
+        before: NonNull<Node<T>>,
+        new_node: NonNull<Node<T>>,
+    ) -> NonNull<Node<T>> {
         let prev_node = (*before.as_ptr()).prev;
 
         if let Some(prev) = prev_node {
