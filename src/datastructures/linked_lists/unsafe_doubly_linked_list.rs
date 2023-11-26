@@ -78,36 +78,28 @@ impl<T> DoublyLinkedList<T> {
     }
 
     pub fn push_front(&mut self, value: T) {
-        let node = Box::new(Node::new(value));
-        let node = NonNull::from(Box::leak(node));
-
+        let new_node = Node::new(value);
         match self.head {
-            Some(prev_head) => unsafe {
-                (*prev_head.as_ptr()).prev = Some(node);
-                (*node.as_ptr()).next = Some(prev_head);
-            },
+            Some(head) => self.head = Some(Self::link_node_before(head, new_node)),
             None => {
-                self.tail = Some(node);
+                let new_node = NonNull::from(Box::leak(Box::new(new_node)));
+                self.head = Some(new_node);
+                self.tail = Some(new_node);
             }
         }
-
-        self.head = Some(node);
         self.len += 1;
     }
 
     pub fn push_back(&mut self, value: T) {
-        let node = Box::new(Node::new(value));
-        let node = NonNull::from(Box::leak(node));
-
+        let new_node = Node::new(value);
         match self.tail {
-            Some(tail) => unsafe {
-                (*tail.as_ptr()).next = Some(node);
-                (*node.as_ptr()).prev = Some(tail);
-            },
-            None => self.head = Some(node),
+            Some(tail) => self.tail = Some(Self::link_node_after(tail, new_node)),
+            None => {
+                let new_node = NonNull::from(Box::leak(Box::new(new_node)));
+                self.tail = Some(new_node);
+                self.head = Some(new_node);
+            }
         }
-
-        self.tail = Some(node);
         self.len += 1;
     }
 
@@ -314,12 +306,44 @@ impl<T> DoublyLinkedList<T> {
         }
     }
 
-    fn link_node_after(after: NonNull<Node<T>>, new_node: Node<T>) -> NonNull<NonNull<T>> {
-        todo!()
+    /// Links `new_node` after node `after` and returns a `NonNull` pointer to `new_node`
+    fn link_node_after(after: NonNull<Node<T>>, new_node: Node<T>) -> NonNull<Node<T>> {
+        let new_node = NonNull::from(Box::leak(Box::new(new_node)));
+
+        unsafe {
+            let next_node = (*after.as_ptr()).next;
+
+            if let Some(next) = next_node {
+                (*next.as_ptr()).prev = Some(new_node);
+            }
+
+            (*new_node.as_ptr()).next = next_node;
+            (*new_node.as_ptr()).prev = Some(after);
+
+            (*after.as_ptr()).next = Some(new_node);
+        }
+
+        return new_node;
     }
 
-    fn link_node_before(before: NonNull<Node<T>>, new_node: Node<T>) -> NonNull<NonNull<T>> {
-        todo!()
+    /// Links `new_node` before node `before` and returns a `NonNull` pointer to `new_node`
+    fn link_node_before(before: NonNull<Node<T>>, new_node: Node<T>) -> NonNull<Node<T>> {
+        let new_node = NonNull::from(Box::leak(Box::new(new_node)));
+
+        unsafe {
+            let prev_node = (*before.as_ptr()).prev;
+
+            if let Some(prev) = prev_node {
+                (*prev.as_ptr()).next = Some(new_node);
+            }
+
+            (*new_node.as_ptr()).prev = prev_node;
+            (*new_node.as_ptr()).next = Some(before);
+
+            (*before.as_ptr()).prev = Some(new_node);
+        }
+
+        return new_node;
     }
 }
 
