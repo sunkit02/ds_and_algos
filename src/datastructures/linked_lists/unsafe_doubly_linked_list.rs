@@ -81,15 +81,7 @@ impl<T> DoublyLinkedList<T> {
     }
 
     pub fn push_front(&mut self, value: T) {
-        let new_node = Node::new_as_ptr(value);
-        match self.head {
-            Some(head) => self.head = Some(Self::link_node_before(head, new_node)),
-            None => {
-                self.head = Some(new_node);
-                self.tail = Some(new_node);
-            }
-        }
-        self.len += 1;
+        self.push_front_node(Node::new_as_ptr(value));
     }
 
     pub fn push_back(&mut self, value: T) {
@@ -245,6 +237,20 @@ impl<T> DoublyLinkedList<T> {
         }
 
         return node;
+    }
+
+    fn push_front_node(&mut self, new_front: NonNull<Node<T>>) {
+        match self.head {
+            Some(old_front) => {
+                Self::link_node_before(old_front, new_front);
+                self.head = Some(new_front);
+            }
+            None => {
+                self.head = Some(new_front);
+                self.tail = Some(new_front);
+            }
+        }
+        self.len += 1;
     }
 
     fn pop_front_node(&mut self) -> Option<NonNull<Node<T>>> {
