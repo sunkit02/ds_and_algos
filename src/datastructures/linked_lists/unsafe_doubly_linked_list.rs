@@ -16,7 +16,7 @@ pub(crate) struct Node<T> {
 }
 
 impl<T> Node<T> {
-    fn new(value: T) -> Self {
+    pub(crate) fn new(value: T) -> Self {
         Self {
             value,
             next: None,
@@ -24,7 +24,7 @@ impl<T> Node<T> {
         }
     }
 
-    fn new_as_ptr(value: T) -> NonNull<Self> {
+    pub(crate) fn new_as_ptr(value: T) -> NonNull<Self> {
         return NonNull::from(Box::leak(Box::new(Self::new(value))));
     }
 }
