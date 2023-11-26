@@ -185,7 +185,7 @@ impl<T> SinglyLinkedList<T> {
                     Some(head) => node = Some(head),
                     None => {}
                 }
-            } else if index == self.len {
+            } else if index == self.len - 1 {
                 match self.tail {
                     Some(tail) => node = Some(tail),
                     None => {}

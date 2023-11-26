@@ -259,38 +259,38 @@ impl<T> DoublyLinkedList<T> {
                 Some(head) => node = Some(head),
                 None => {}
             }
-        } else if index == self.len {
+        } else if index == self.len - 1 {
             match self.tail {
                 Some(tail) => node = Some(tail),
                 None => {}
             }
         } else {
             // Start traversing from the end closer to the target index
-            // if index > self.len / 2 {
-            let mut itr = self.head;
-            let mut i = 0;
-            while let Some(itr_node) = itr {
-                if i == index {
-                    node = Some(itr_node);
-                    break;
-                }
+            if index > self.len / 2 {
+                let mut itr = self.head;
+                let mut i = 0;
+                while let Some(itr_node) = itr {
+                    if i == index {
+                        node = Some(itr_node);
+                        break;
+                    }
 
-                itr = unsafe { (*itr_node.as_ptr()).next };
-                i += 1;
+                    itr = unsafe { (*itr_node.as_ptr()).next };
+                    i += 1;
+                }
+            } else {
+                let mut itr = self.tail;
+                let mut i = self.len - 1;
+                while let Some(itr_node) = itr {
+                    if i == index {
+                        node = Some(itr_node);
+                        break;
+                    }
+
+                    itr = unsafe { (*itr_node.as_ptr()).prev };
+                    i -= 1;
+                }
             }
-            // } else {
-            //     let mut itr = self.tail;
-            //     let mut i = self.len - 1;
-            //     while let Some(itr_node) = itr {
-            //         if i == index {
-            //             node = Some(itr_node);
-            //             break;
-            //         }
-            //
-            //         itr = unsafe { (*itr_node.as_ptr()).prev };
-            //         i -= 1;
-            //     }
-            // }
         }
 
         return node;
