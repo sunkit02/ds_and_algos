@@ -189,6 +189,14 @@ impl<T> DoublyLinkedList<T> {
             phantom_data: PhantomData,
         }
     }
+
+    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
+        IterMut {
+            next_node: self.head,
+            next_back_node: self.tail,
+            phantom_data: PhantomData,
+        }
+    }
 }
 
 // Helper methods
@@ -443,6 +451,56 @@ impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
                 }
 
                 return Some(&node.as_ref().value);
+            },
+            None => {
+                return None;
+            }
+        }
+    }
+}
+
+pub struct IterMut<'a, T> {
+    next_node: Option<NonNull<Node<T>>>,
+    next_back_node: Option<NonNull<Node<T>>>,
+    phantom_data: PhantomData<&'a mut DoublyLinkedList<T>>,
+}
+
+impl<'a, T> Iterator for IterMut<'a, T> {
+    type Item = &'a mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.next_node {
+            Some(mut node) => unsafe {
+                // Exhaust the iterator if both ends meet
+                if node == self.next_back_node.unwrap() {
+                    self.next_node = None;
+                    self.next_back_node = None;
+                } else {
+                    self.next_node = (*node.as_ptr()).next;
+                }
+
+                return Some(&mut node.as_mut().value);
+            },
+            None => {
+                return None;
+            }
+        }
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for IterMut<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        match self.next_back_node {
+            Some(mut node) => unsafe {
+                // Exhaust the iterator if both ends meet
+                if node == self.next_node.unwrap() {
+                    self.next_node = None;
+                    self.next_back_node = None;
+                } else {
+                    self.next_back_node = (*node.as_ptr()).prev;
+                }
+
+                return Some(&mut node.as_mut().value);
             },
             None => {
                 return None;
@@ -737,6 +795,76 @@ mod test {
 
         assert_eq!(iter.next_back(), None);
         assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn can_iter_mut_when_empty() {
+        let mut linked_list: DoublyLinkedList<i32> = DoublyLinkedList::new();
+        let mut iter_mut = linked_list.iter_mut();
+
+        assert_eq!(iter_mut.next(), None);
+        assert_eq!(iter_mut.next_back(), None);
+    }
+
+    #[test]
+    fn can_iter_mut_from_the_front() {
+        let mut linked_list = DoublyLinkedList::from_iter(vec![1, 2, 3, 4, 5]);
+        let mut iter_mut = linked_list.iter_mut();
+
+        assert_eq!(iter_mut.next(), Some(&mut 1));
+        assert_eq!(iter_mut.next(), Some(&mut 2));
+        assert_eq!(iter_mut.next(), Some(&mut 3));
+        assert_eq!(iter_mut.next(), Some(&mut 4));
+        assert_eq!(iter_mut.next(), Some(&mut 5));
+        assert_eq!(iter_mut.next(), None);
+    }
+
+    #[test]
+    fn can_iter_mut_from_the_back() {
+        let mut linked_list = DoublyLinkedList::from_iter(vec![1, 2, 3, 4, 5]);
+        let mut iter_mut = linked_list.iter_mut();
+
+        assert_eq!(iter_mut.next_back(), Some(&mut 5));
+        assert_eq!(iter_mut.next_back(), Some(&mut 4));
+        assert_eq!(iter_mut.next_back(), Some(&mut 3));
+        assert_eq!(iter_mut.next_back(), Some(&mut 2));
+        assert_eq!(iter_mut.next_back(), Some(&mut 1));
+        assert_eq!(iter_mut.next_back(), None);
+    }
+
+    #[test]
+    fn can_iter_mut_from_both_sides() {
+        let mut linked_list = DoublyLinkedList::from_iter(vec![1, 2, 3, 4, 5]);
+
+        // [1, 2, 3, 4, 5]
+        //  F           B
+        let mut iter_mut = linked_list.iter_mut();
+
+        // [1, 2, 3, 4, 5]
+        //  X  F        B
+        assert_eq!(iter_mut.next(), Some(&mut 1));
+
+        // [1, 2, 3, 4, 5]
+        //  X  X  F     B
+        assert_eq!(iter_mut.next(), Some(&mut 2));
+
+        // [1, 2, 3, 4, 5]
+        //  X  X  X  F  B
+        assert_eq!(iter_mut.next(), Some(&mut 3));
+
+        // [1, 2, 3, 4, 5]
+        //  X  X  X  F  X
+        //           B
+        assert_eq!(iter_mut.next_back(), Some(&mut 5));
+
+        // [1, 2, 3, 4, 5]
+        //  X  X  X  X  X
+        //           F
+        //           B
+        assert_eq!(iter_mut.next_back(), Some(&mut 4));
+
+        assert_eq!(iter_mut.next_back(), None);
+        assert_eq!(iter_mut.next(), None);
     }
 
     /// Checks the integrity of all pointers in the linked list
