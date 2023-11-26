@@ -9,8 +9,8 @@ pub struct DoublyLinkedList<T> {
 }
 
 #[derive(Debug, PartialEq)]
-struct Node<T> {
-    value: T,
+pub(crate) struct Node<T> {
+    pub(crate) value: T,
     next: Option<NonNull<Node<T>>>,
     prev: Option<NonNull<Node<T>>>,
 }
@@ -207,7 +207,7 @@ impl<T> DoublyLinkedList<T> {
         return node;
     }
 
-    fn push_front_node(&mut self, new_front: NonNull<Node<T>>) {
+    pub(crate) fn push_front_node(&mut self, new_front: NonNull<Node<T>>) {
         match self.head {
             Some(old_front) => {
                 Self::link_node_before(old_front, new_front);
@@ -221,7 +221,7 @@ impl<T> DoublyLinkedList<T> {
         self.len += 1;
     }
 
-    fn pop_front_node(&mut self) -> Option<NonNull<Node<T>>> {
+    pub(crate) fn pop_front_node(&mut self) -> Option<NonNull<Node<T>>> {
         self.head.map(|prev_head| unsafe {
             if let None = (*prev_head.as_ptr()).next {
                 self.tail = None;
@@ -233,7 +233,7 @@ impl<T> DoublyLinkedList<T> {
         })
     }
 
-    fn push_back_node(&mut self, new_back: NonNull<Node<T>>) {
+    pub(crate) fn push_back_node(&mut self, new_back: NonNull<Node<T>>) {
         match self.tail {
             Some(old_back) => {
                 Self::link_node_after(old_back, new_back);
@@ -247,7 +247,7 @@ impl<T> DoublyLinkedList<T> {
         self.len += 1;
     }
 
-    fn pop_back_node(&mut self) -> Option<NonNull<Node<T>>> {
+    pub(crate) fn pop_back_node(&mut self) -> Option<NonNull<Node<T>>> {
         self.tail.map(|prev_tail| unsafe {
             if let None = (*prev_tail.as_ptr()).prev {
                 self.head = None;
@@ -259,7 +259,7 @@ impl<T> DoublyLinkedList<T> {
         })
     }
 
-    fn link_node_at(&mut self, index: usize, new_node: NonNull<Node<T>>) {
+    pub(crate) fn link_node_at(&mut self, index: usize, new_node: NonNull<Node<T>>) {
         if index > self.len {
             panic!("Index out of bounds.");
         }
@@ -278,7 +278,7 @@ impl<T> DoublyLinkedList<T> {
         }
     }
 
-    fn unlink_node_at(&mut self, index: usize) -> Option<NonNull<Node<T>>> {
+    pub(crate) fn unlink_node_at(&mut self, index: usize) -> Option<NonNull<Node<T>>> {
         if index == 0 {
             return self.pop_front_node();
         } else if index == self.len - 1 {
