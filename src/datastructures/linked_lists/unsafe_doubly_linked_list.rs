@@ -134,7 +134,7 @@ impl<T> DoublyLinkedList<T> {
     }
 
     pub fn remove(&mut self, index: usize) -> Option<T> {
-        match self.unlink_node(index) {
+        match self.unlink_node_at(index) {
             Some(node) => Some(node.value),
             None => None,
         }
@@ -191,7 +191,7 @@ impl<T> DoublyLinkedList<T> {
     }
 }
 
-// private helper functions
+// Helper methods
 impl<T> DoublyLinkedList<T> {
     fn get_node(&self, index: usize) -> Option<NonNull<Node<T>>> {
         if index >= self.len {
@@ -274,7 +274,7 @@ impl<T> DoublyLinkedList<T> {
         })
     }
 
-    fn unlink_node(&mut self, index: usize) -> Option<Box<Node<T>>> {
+    fn unlink_node_at(&mut self, index: usize) -> Option<Box<Node<T>>> {
         if index == 0 {
             return self.pop_front_node();
         } else if index == self.len - 1 {
@@ -293,6 +293,39 @@ impl<T> DoublyLinkedList<T> {
                 None => None,
             }
         }
+    }
+}
+
+// Helper functions
+impl<T> DoublyLinkedList<T> {
+    fn unlink_node(node: NonNull<Node<T>>) -> Box<Node<T>> {
+        unsafe {
+            let prev_node = (*node.as_ptr()).prev;
+            let next_node = (*node.as_ptr()).next;
+
+            if let Some(prev) = prev_node {
+                (*prev.as_ptr()).next = next_node;
+                (*node.as_ptr()).prev = None;
+            }
+
+            if let Some(next) = next_node {
+                (*next.as_ptr()).prev = prev_node;
+                (*node.as_ptr()).next = None;
+            }
+
+
+
+
+            return Box::from_raw(node.as_ptr()); 
+        }
+    }
+
+    fn link_node_after(after: NonNull<Node<T>>, new_node: Node<T>) -> NonNull<NonNull<T>> {
+        todo!()
+    }
+
+    fn link_node_before(before: NonNull<Node<T>>, new_node: Node<T>) -> NonNull<NonNull<T>> {
+        todo!()
     }
 }
 
