@@ -53,31 +53,7 @@ impl<T> DoublyLinkedList<T> {
     }
 
     pub fn insert(&mut self, index: usize, value: T) {
-        if index > self.len {
-            panic!("Index out of bounds.");
-        }
-
-        if index == 0 {
-            self.push_front(value);
-        } else if index == self.len() {
-            self.push_back(value);
-        } else {
-            if let Some(prev_node) = self.get_node(index - 1) {
-                unsafe {
-                    let node = Node::new_as_ptr(value);
-                    let next_node = (*prev_node.as_ptr()).next;
-
-                    (*node.as_ptr()).prev = Some(prev_node);
-                    (*node.as_ptr()).next = next_node;
-                    (*prev_node.as_ptr()).next = Some(node);
-                    if let Some(next_node) = next_node {
-                        (*next_node.as_ptr()).prev = Some(node);
-                    }
-                }
-            }
-
-            self.len += 1;
-        }
+        self.link_node_at(index, Node::new_as_ptr(value));
     }
 
     pub fn push_front(&mut self, value: T) {
@@ -281,6 +257,25 @@ impl<T> DoublyLinkedList<T> {
 
             return Self::unlink_node(prev_tail);
         })
+    }
+
+    fn link_node_at(&mut self, index: usize, new_node: NonNull<Node<T>>) {
+        if index > self.len {
+            panic!("Index out of bounds.");
+        }
+
+        if index == 0 {
+            self.push_front_node(new_node);
+        } else if index == self.len {
+            self.push_back_node(new_node);
+        } else {
+            if let Some(node_at_index) = self.get_node(index) {
+                Self::link_node_before(node_at_index, new_node);
+                self.len += 1;
+            } else {
+                panic!("There should be a node at the specified index.");
+            }
+        }
     }
 
     fn unlink_node_at(&mut self, index: usize) -> Option<NonNull<Node<T>>> {
