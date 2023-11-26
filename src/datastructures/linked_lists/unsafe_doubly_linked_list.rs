@@ -183,7 +183,7 @@ impl<T> DoublyLinkedList<T> {
     }
 
     pub fn iter(&self) -> Iter<'_, T> {
-        Iter { 
+        Iter {
             next_node: self.head,
             next_back_node: self.tail,
             phantom_data: PhantomData,
@@ -387,7 +387,7 @@ impl<T> IntoIterator for DoublyLinkedList<T> {
 pub struct Iter<'a, T> {
     next_node: Option<NonNull<Node<T>>>,
     next_back_node: Option<NonNull<Node<T>>>,
-    phantom_data: PhantomData<&'a DoublyLinkedList<T>>
+    phantom_data: PhantomData<&'a DoublyLinkedList<T>>,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
