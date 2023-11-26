@@ -402,7 +402,7 @@ impl<T: Debug> Debug for DoublyLinkedList<T> {
 
 impl<T> Drop for DoublyLinkedList<T> {
     fn drop(&mut self) {
-        while self.pop_front().is_some() {}
+        self.clear();
     }
 }
 
