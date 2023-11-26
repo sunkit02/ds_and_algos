@@ -18,3 +18,7 @@ harness = false
 [[bench]]
 name = "singly_and_doubly_linked_lists"
 harness = false
+
+[[bench]]
+name = "get_last_value_linked_lists"
+harness = false
