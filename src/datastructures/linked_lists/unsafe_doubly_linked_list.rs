@@ -14,6 +14,69 @@ struct Node<T> {
     prev: Option<NonNull<Node<T>>>,
 }
 
+#[derive(Debug)]
+pub struct IntoIter<T> {
+    next_node: Option<NonNull<Node<T>>>,
+    next_back_node: Option<NonNull<Node<T>>>,
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.next_node {
+            Some(node) => unsafe {
+                // Exhaust the iterator if both ends meet
+                if node == self.next_back_node.unwrap() {
+                    self.next_node = None;
+                    self.next_back_node = None;
+                } else {
+                    self.next_node = (*node.as_ptr()).next;
+                }
+
+                return Some(Box::from_raw(node.as_ptr()).value);
+            },
+            None => {
+                return None;
+            }
+        }
+    }
+}
+
+impl<T> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        match self.next_back_node {
+            Some(node) => unsafe {
+                // Exhaust the iterator if both ends meet
+                if node == self.next_node.unwrap() {
+                    self.next_node = None;
+                    self.next_back_node = None;
+                } else {
+                    self.next_back_node = (*node.as_ptr()).prev;
+                }
+
+                return Some(Box::from_raw(node.as_ptr()).value);
+            },
+            None => {
+                return None;
+            }
+        }
+    }
+}
+
+impl<T> IntoIterator for DoublyLinkedList<T> {
+    type Item = T;
+
+    type IntoIter = IntoIter<Self::Item>;
+
+    fn into_iter(mut self) -> Self::IntoIter {
+        return Self::IntoIter {
+            next_node: self.head.take(),
+            next_back_node: self.tail.take(),
+        };
+    }
+}
+
 impl<T> Node<T> {
     fn new(value: T) -> Self {
         Self {
@@ -443,6 +506,76 @@ mod test {
         assert_eq!(linked_list.front(), None);
         assert_eq!(linked_list.back(), None);
         assert_eq!(linked_list.len(), 0);
+    }
+
+    #[test]
+    fn can_into_iter_when_empty() {
+        let linked_list: DoublyLinkedList<i32> = DoublyLinkedList::new();
+        let mut into_iter = linked_list.into_iter();
+
+        assert_eq!(into_iter.next(), None);
+        assert_eq!(into_iter.next_back(), None);
+    }
+
+    #[test]
+    fn can_into_iter_from_the_front() {
+        let linked_list = DoublyLinkedList::from_iter(vec![1, 2, 3, 4, 5]);
+        let mut into_iter = linked_list.into_iter();
+
+        assert_eq!(into_iter.next(), Some(1));
+        assert_eq!(into_iter.next(), Some(2));
+        assert_eq!(into_iter.next(), Some(3));
+        assert_eq!(into_iter.next(), Some(4));
+        assert_eq!(into_iter.next(), Some(5));
+        assert_eq!(into_iter.next(), None);
+    }
+
+    #[test]
+    fn can_into_iter_from_the_back() {
+        let linked_list = DoublyLinkedList::from_iter(vec![1, 2, 3, 4, 5]);
+        let mut into_iter = linked_list.into_iter();
+
+        assert_eq!(into_iter.next_back(), Some(5));
+        assert_eq!(into_iter.next_back(), Some(4));
+        assert_eq!(into_iter.next_back(), Some(3));
+        assert_eq!(into_iter.next_back(), Some(2));
+        assert_eq!(into_iter.next_back(), Some(1));
+        assert_eq!(into_iter.next_back(), None);
+    }
+
+    #[test]
+    fn can_into_iter_from_both_sides() {
+        let linked_list = DoublyLinkedList::from_iter(vec![1, 2, 3, 4, 5]);
+
+        // [1, 2, 3, 4, 5]
+        //  F           B
+        let mut into_iter = linked_list.into_iter();
+
+        // [1, 2, 3, 4, 5]
+        //  X  F        B
+        assert_eq!(into_iter.next(), Some(1));
+
+        // [1, 2, 3, 4, 5]
+        //  X  X  F     B
+        assert_eq!(into_iter.next(), Some(2));
+
+        // [1, 2, 3, 4, 5]
+        //  X  X  X  F  B
+        assert_eq!(into_iter.next(), Some(3));
+
+        // [1, 2, 3, 4, 5]
+        //  X  X  X  F  X
+        //           B
+        assert_eq!(into_iter.next_back(), Some(5));
+
+        // [1, 2, 3, 4, 5]
+        //  X  X  X  X  X
+        //           F
+        //           B
+        assert_eq!(into_iter.next_back(), Some(4));
+
+        assert_eq!(into_iter.next_back(), None);
+        assert_eq!(into_iter.next(), None);
     }
 
     /// Checks the integrity of all pointers in the linked list
