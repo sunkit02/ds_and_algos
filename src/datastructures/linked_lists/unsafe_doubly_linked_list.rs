@@ -210,7 +210,7 @@ impl<T> DoublyLinkedList<T> {
     pub(crate) fn push_front_node(&mut self, new_front: NonNull<Node<T>>) {
         match self.head {
             Some(old_front) => {
-                Self::link_node_before(old_front, new_front);
+                unsafe { Self::link_node_before(old_front, new_front) };
                 self.head = Some(new_front);
             }
             None => {
@@ -236,7 +236,7 @@ impl<T> DoublyLinkedList<T> {
     pub(crate) fn push_back_node(&mut self, new_back: NonNull<Node<T>>) {
         match self.tail {
             Some(old_back) => {
-                Self::link_node_after(old_back, new_back);
+                unsafe { Self::link_node_after(old_back, new_back) };
                 self.tail = Some(new_back);
             }
             None => {
@@ -270,7 +270,7 @@ impl<T> DoublyLinkedList<T> {
             self.push_back_node(new_node);
         } else {
             if let Some(node_at_index) = self.get_node(index) {
-                Self::link_node_before(node_at_index, new_node);
+                unsafe { Self::link_node_before(node_at_index, new_node) };
                 self.len += 1;
             } else {
                 panic!("There should be a node at the specified index.");
@@ -287,67 +287,73 @@ impl<T> DoublyLinkedList<T> {
             match self.get_node(index) {
                 Some(node) => {
                     self.len -= 1;
-                    return Some(Self::unlink_node(node));
+                    return Some(unsafe { Self::unlink_node(node) });
                 }
                 None => None,
             }
         }
     }
+    
+    /// WARN: This method does not check if `node` is part of the linked list.
+    pub(crate) unsafe fn unlink_node_unchecked(&mut self, node: NonNull<Node<T>>) -> NonNull<Node<T>> {
+        self.len -= 1;
+        return Self::unlink_node(node);
+    }
 }
 
 // Helper functions
 impl<T> DoublyLinkedList<T> {
-    fn unlink_node(node: NonNull<Node<T>>) -> NonNull<Node<T>> {
-        unsafe {
-            let prev_node = (*node.as_ptr()).prev;
-            let next_node = (*node.as_ptr()).next;
+    /// WARN: This method does not update the length or any other internal state
+    /// of the linked list.
+    pub(crate) unsafe fn unlink_node(node: NonNull<Node<T>>) -> NonNull<Node<T>> {
+        let prev_node = (*node.as_ptr()).prev;
+        let next_node = (*node.as_ptr()).next;
 
-            if let Some(prev) = prev_node {
-                (*prev.as_ptr()).next = next_node;
-                (*node.as_ptr()).prev = None;
-            }
-
-            if let Some(next) = next_node {
-                (*next.as_ptr()).prev = prev_node;
-                (*node.as_ptr()).next = None;
-            }
-
-            return node;
+        if let Some(prev) = prev_node {
+            (*prev.as_ptr()).next = next_node;
+            (*node.as_ptr()).prev = None;
         }
+
+        if let Some(next) = next_node {
+            (*next.as_ptr()).prev = prev_node;
+            (*node.as_ptr()).next = None;
+        }
+
+        return node;
     }
 
     /// Links `new_node` after node `after` and returns a `NonNull` pointer to `new_node`
-    fn link_node_after(after: NonNull<Node<T>>, new_node: NonNull<Node<T>>) -> NonNull<Node<T>> {
-        unsafe {
-            let next_node = (*after.as_ptr()).next;
+    /// WARN: This method does not update the length or any other internal state
+    /// of the linked list.
+    unsafe fn link_node_after(after: NonNull<Node<T>>, new_node: NonNull<Node<T>>) -> NonNull<Node<T>> {
+        let next_node = (*after.as_ptr()).next;
 
-            if let Some(next) = next_node {
-                (*next.as_ptr()).prev = Some(new_node);
-            }
-
-            (*new_node.as_ptr()).next = next_node;
-            (*new_node.as_ptr()).prev = Some(after);
-
-            (*after.as_ptr()).next = Some(new_node);
+        if let Some(next) = next_node {
+            (*next.as_ptr()).prev = Some(new_node);
         }
+
+        (*new_node.as_ptr()).next = next_node;
+        (*new_node.as_ptr()).prev = Some(after);
+
+        (*after.as_ptr()).next = Some(new_node);
 
         return new_node;
     }
 
     /// Links `new_node` before node `before` and returns a `NonNull` pointer to `new_node`
-    fn link_node_before(before: NonNull<Node<T>>, new_node: NonNull<Node<T>>) -> NonNull<Node<T>> {
-        unsafe {
-            let prev_node = (*before.as_ptr()).prev;
+    /// WARN: This method does not update the length or any other internal state
+    /// of the linked list.
+    unsafe fn link_node_before(before: NonNull<Node<T>>, new_node: NonNull<Node<T>>) -> NonNull<Node<T>> {
+        let prev_node = (*before.as_ptr()).prev;
 
-            if let Some(prev) = prev_node {
-                (*prev.as_ptr()).next = Some(new_node);
-            }
-
-            (*new_node.as_ptr()).prev = prev_node;
-            (*new_node.as_ptr()).next = Some(before);
-
-            (*before.as_ptr()).prev = Some(new_node);
+        if let Some(prev) = prev_node {
+            (*prev.as_ptr()).next = Some(new_node);
         }
+
+        (*new_node.as_ptr()).prev = prev_node;
+        (*new_node.as_ptr()).next = Some(before);
+
+        (*before.as_ptr()).prev = Some(new_node);
 
         return new_node;
     }
