@@ -186,6 +186,7 @@ impl<T> DoublyLinkedList<T> {
         Iter {
             next_node: self.head,
             next_back_node: self.tail,
+            len: self.len,
             phantom_data: PhantomData,
         }
     }
@@ -194,6 +195,7 @@ impl<T> DoublyLinkedList<T> {
         IterMut {
             next_node: self.head,
             next_back_node: self.tail,
+            len: self.len,
             phantom_data: PhantomData,
         }
     }
@@ -346,56 +348,6 @@ impl<T> Drop for DoublyLinkedList<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct IntoIter<T> {
-    next_node: Option<NonNull<Node<T>>>,
-    next_back_node: Option<NonNull<Node<T>>>,
-}
-
-impl<T> Iterator for IntoIter<T> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.next_node {
-            Some(node) => unsafe {
-                // Exhaust the iterator if both ends meet
-                if node == self.next_back_node.unwrap() {
-                    self.next_node = None;
-                    self.next_back_node = None;
-                } else {
-                    self.next_node = (*node.as_ptr()).next;
-                }
-
-                return Some(Box::from_raw(node.as_ptr()).value);
-            },
-            None => {
-                return None;
-            }
-        }
-    }
-}
-
-impl<T> DoubleEndedIterator for IntoIter<T> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        match self.next_back_node {
-            Some(node) => unsafe {
-                // Exhaust the iterator if both ends meet
-                if node == self.next_node.unwrap() {
-                    self.next_node = None;
-                    self.next_back_node = None;
-                } else {
-                    self.next_back_node = (*node.as_ptr()).prev;
-                }
-
-                return Some(Box::from_raw(node.as_ptr()).value);
-            },
-            None => {
-                return None;
-            }
-        }
-    }
-}
-
 impl<T> IntoIterator for DoublyLinkedList<T> {
     type Item = T;
 
@@ -405,13 +357,60 @@ impl<T> IntoIterator for DoublyLinkedList<T> {
         return Self::IntoIter {
             next_node: self.head.take(),
             next_back_node: self.tail.take(),
+            len: self.len,
         };
+    }
+}
+
+#[derive(Debug)]
+pub struct IntoIter<T> {
+    next_node: Option<NonNull<Node<T>>>,
+    next_back_node: Option<NonNull<Node<T>>>,
+    len: usize,
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.len == 0 {
+            return None;
+        }
+
+        return self.next_node.map(|node| unsafe {
+            self.next_node = (*node.as_ptr()).next;
+            self.len -= 1;
+            return Box::from_raw(node.as_ptr()).value;
+        });
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len, Some(self.len))
+    }
+
+    fn last(mut self) -> Option<T> {
+        self.next_back()
+    }
+}
+
+impl<T> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.len == 0 {
+            return None;
+        }
+
+        return self.next_back_node.map(|node| unsafe {
+            self.next_back_node = (*node.as_ptr()).prev;
+            self.len -= 1;
+            return Box::from_raw(node.as_ptr()).value;
+        });
     }
 }
 
 pub struct Iter<'a, T> {
     next_node: Option<NonNull<Node<T>>>,
     next_back_node: Option<NonNull<Node<T>>>,
+    len: usize,
     phantom_data: PhantomData<&'a DoublyLinkedList<T>>,
 }
 
@@ -419,49 +418,44 @@ impl<'a, T> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.next_node {
-            Some(node) => unsafe {
-                // Exhaust the iterator if both ends meet
-                if node == self.next_back_node.unwrap() {
-                    self.next_node = None;
-                    self.next_back_node = None;
-                } else {
-                    self.next_node = (*node.as_ptr()).next;
-                }
-
-                return Some(&node.as_ref().value);
-            },
-            None => {
-                return None;
-            }
+        if self.len == 0 {
+            return None;
         }
+
+        return self.next_node.map(|node| unsafe {
+            self.next_node = (*node.as_ptr()).next;
+            self.len -= 1;
+            return &node.as_ref().value;
+        });
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len, Some(self.len))
+    }
+
+    fn last(mut self) -> Option<&'a T> {
+        self.next_back()
     }
 }
 
 impl<'a, T> DoubleEndedIterator for Iter<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.next_back_node {
-            Some(node) => unsafe {
-                // Exhaust the iterator if both ends meet
-                if node == self.next_node.unwrap() {
-                    self.next_node = None;
-                    self.next_back_node = None;
-                } else {
-                    self.next_back_node = (*node.as_ptr()).prev;
-                }
-
-                return Some(&node.as_ref().value);
-            },
-            None => {
-                return None;
-            }
+        if self.len == 0 {
+            return None;
         }
+
+        return self.next_back_node.map(|node| unsafe {
+            self.next_back_node = (*node.as_ptr()).prev;
+            self.len -= 1;
+            return &node.as_ref().value;
+        });
     }
 }
 
 pub struct IterMut<'a, T> {
     next_node: Option<NonNull<Node<T>>>,
     next_back_node: Option<NonNull<Node<T>>>,
+    len: usize,
     phantom_data: PhantomData<&'a mut DoublyLinkedList<T>>,
 }
 
@@ -469,43 +463,37 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = &'a mut T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.next_node {
-            Some(mut node) => unsafe {
-                // Exhaust the iterator if both ends meet
-                if node == self.next_back_node.unwrap() {
-                    self.next_node = None;
-                    self.next_back_node = None;
-                } else {
-                    self.next_node = (*node.as_ptr()).next;
-                }
-
-                return Some(&mut node.as_mut().value);
-            },
-            None => {
-                return None;
-            }
+        if self.len == 0 {
+            return None;
         }
+
+        return self.next_node.map(|mut node| unsafe {
+            self.next_node = (*node.as_ptr()).next;
+            self.len -= 1;
+            return &mut node.as_mut().value;
+        });
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len, Some(self.len))
+    }
+
+    fn last(mut self) -> Option<&'a mut T> {
+        self.next_back()
     }
 }
 
 impl<'a, T> DoubleEndedIterator for IterMut<'a, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        match self.next_back_node {
-            Some(mut node) => unsafe {
-                // Exhaust the iterator if both ends meet
-                if node == self.next_node.unwrap() {
-                    self.next_node = None;
-                    self.next_back_node = None;
-                } else {
-                    self.next_back_node = (*node.as_ptr()).prev;
-                }
-
-                return Some(&mut node.as_mut().value);
-            },
-            None => {
-                return None;
-            }
+        if self.len == 0 {
+            return None;
         }
+
+        return self.next_back_node.map(|mut node| unsafe {
+            self.next_back_node = (*node.as_ptr()).prev;
+            self.len -= 1;
+            return &mut node.as_mut().value;
+        });
     }
 }
 
