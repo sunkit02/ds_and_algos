@@ -105,11 +105,13 @@ impl<T> DoublyLinkedList<T> {
     }
 
     pub fn pop_front(&mut self) -> Option<T> {
-        self.pop_front_node().map(|node| node.value)
+        self.pop_front_node()
+            .map(|node| unsafe { Box::from_raw(node.as_ptr()).value })
     }
 
     pub fn pop_back(&mut self) -> Option<T> {
-        self.pop_back_node().map(|node| node.value)
+        self.pop_back_node()
+            .map(|node| unsafe { Box::from_raw(node.as_ptr()).value })
     }
 
     pub fn get(&self, index: usize) -> Option<&T> {
@@ -128,7 +130,7 @@ impl<T> DoublyLinkedList<T> {
 
     pub fn remove(&mut self, index: usize) -> Option<T> {
         match self.unlink_node_at(index) {
-            Some(node) => Some(node.value),
+            Some(node) => Some(unsafe { Box::from_raw(node.as_ptr()).value }),
             None => None,
         }
     }
@@ -169,7 +171,7 @@ impl<T> DoublyLinkedList<T> {
         let mut vec = Vec::with_capacity(self.len);
 
         while let Some(node) = self.pop_front_node() {
-            vec.push(node.value);
+            vec.push(unsafe { Box::from_raw(node.as_ptr()).value });
         }
 
         return vec;
@@ -245,7 +247,7 @@ impl<T> DoublyLinkedList<T> {
         return node;
     }
 
-    fn pop_front_node(&mut self) -> Option<Box<Node<T>>> {
+    fn pop_front_node(&mut self) -> Option<NonNull<Node<T>>> {
         self.head.map(|prev_head| unsafe {
             if let None = (*prev_head.as_ptr()).next {
                 self.tail = None;
@@ -257,7 +259,7 @@ impl<T> DoublyLinkedList<T> {
         })
     }
 
-    fn pop_back_node(&mut self) -> Option<Box<Node<T>>> {
+    fn pop_back_node(&mut self) -> Option<NonNull<Node<T>>> {
         self.tail.map(|prev_tail| unsafe {
             if let None = (*prev_tail.as_ptr()).prev {
                 self.head = None;
@@ -269,7 +271,7 @@ impl<T> DoublyLinkedList<T> {
         })
     }
 
-    fn unlink_node_at(&mut self, index: usize) -> Option<Box<Node<T>>> {
+    fn unlink_node_at(&mut self, index: usize) -> Option<NonNull<Node<T>>> {
         if index == 0 {
             return self.pop_front_node();
         } else if index == self.len - 1 {
@@ -288,7 +290,7 @@ impl<T> DoublyLinkedList<T> {
 
 // Helper functions
 impl<T> DoublyLinkedList<T> {
-    fn unlink_node(node: NonNull<Node<T>>) -> Box<Node<T>> {
+    fn unlink_node(node: NonNull<Node<T>>) -> NonNull<Node<T>> {
         unsafe {
             let prev_node = (*node.as_ptr()).prev;
             let next_node = (*node.as_ptr()).next;
@@ -303,7 +305,7 @@ impl<T> DoublyLinkedList<T> {
                 (*node.as_ptr()).next = None;
             }
 
-            return Box::from_raw(node.as_ptr());
+            return node;
         }
     }
 
