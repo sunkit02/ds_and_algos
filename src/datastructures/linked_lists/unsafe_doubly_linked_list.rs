@@ -305,7 +305,7 @@ impl<T> DoublyLinkedList<T> {
             if node == head_node {
                 return self.pop_front_node().unwrap();
             }
-        } 
+        }
         if let Some(tail_node) = self.tail {
             if node == tail_node {
                 return self.pop_back_node().unwrap();

@@ -1,45 +1,60 @@
 use std::{
     alloc::{self, Layout},
-    panic,
     ptr::{self, NonNull},
 };
 
+const INITIAL_CAPACITY: usize = 4;
+
 pub struct ArrayList<T> {
-    buf: NonNull<T>,
+    ptr: NonNull<T>,
     capacity: usize,
-    layout: Layout,
     len: usize,
 }
 
 impl<T> ArrayList<T> {
     pub fn new() -> Self {
-        Self::with_capacity(0)
-    }
-
-    pub fn with_capacity(capacity: usize) -> Self {
-        let layout = Layout::array::<T>(capacity).expect("Out of memory");
-        let buf = unsafe {
-            let buf_ptr = Box::from_raw(alloc::alloc(layout) as *mut T);
-            NonNull::from(Box::leak(buf_ptr))
-        };
-
         Self {
-            buf,
-            capacity,
-            layout,
+            ptr: NonNull::dangling(),
+            capacity: 0,
             len: 0,
         }
     }
 
-    pub fn push(&mut self, value: T) {
-        if self.len >= self.capacity {
-            todo!("Implement realloc");
+    pub fn with_capacity(capacity: usize) -> Self {
+        let layout = Layout::array::<T>(capacity).expect("Out of memory");
+        let ptr = unsafe { alloc::alloc(layout.clone()) as *mut T };
+        let ptr = NonNull::new(ptr).expect("Failed to allocate memory");
+
+        Self {
+            ptr,
+            capacity,
+            len: 0,
+        }
+    }
+
+    pub fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+    {
+        let mut iter = iter.into_iter();
+        let mut list = Self::new();
+
+        while let Some(item) = iter.next() {
+            list.push(item);
         }
 
+        return list;
+    }
+
+    pub fn push(&mut self, value: T) {
+        // This will catch the case where len and capcity are both 0
+        if self.len >= self.capacity {
+            self.grow();
+        }
+
+        debug_assert!(self.len < self.capacity);
         unsafe {
-            let end = self.buf.as_ptr().add(self.len);
-            // FIX: Write access when tag not exist in the borrow stack
-            ptr::write(end, value);
+            self.ptr.as_ptr().add(self.len).write(value);
             self.len += 1;
         }
     }
@@ -50,41 +65,104 @@ impl<T> ArrayList<T> {
 
         unsafe {
             self.len -= 1;
-            Some(ptr::read(self.buf.as_ptr().add(self.len)))
+            Some(ptr::read(self.ptr.as_ptr().add(self.len)))
         }
     }
 
-    pub fn insert(&mut self, _index: usize, _value: T) {
-        todo!()
+    pub fn insert(&mut self, index: usize, value: T) {
+        if self.len >= self.capacity {
+            self.grow();
+        }
+
+        unsafe {
+            // Shift all elements down by one index
+            let src = self.ptr.as_ptr().add(index);
+            let dst = src.add(1);
+            let count = self.len - index;
+            ptr::copy(src, dst, count);
+
+            src.write(value);
+        }
+
+        self.len += 1;
     }
 
     pub fn get(&self, index: usize) -> Option<&T> {
         if index >= self.len {
-            panic!("Index out of bounds.");
+            return None;
         }
 
-        unsafe { self.buf.as_ptr().add(index).as_ref() }
+        debug_assert!(self.len >= 1, "Should have at least one element");
+        unsafe { self.ptr.as_ptr().add(index).as_ref() }
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+        if index >= self.len {
+            return None;
+        }
+
+        debug_assert!(self.len >= 1, "Should have at least one element");
+        unsafe { self.ptr.as_ptr().add(index).as_mut() }
+    }
+
+    pub fn capacity(&self) -> usize {
+        return self.capacity;
     }
 
     pub fn len(&self) -> usize {
-        self.len
+        return self.len;
     }
 
     pub fn as_slice(&self) -> &[T] {
         unsafe {
-            let buf = self.buf.as_ptr();
+            let buf = self.ptr.as_ptr();
             let raw_slice = ptr::slice_from_raw_parts(buf, self.len);
 
-            raw_slice.as_ref().expect("Failed to get slice")
+            match raw_slice.as_ref() {
+                Some(slice) => slice,
+                None => &[],
+            }
         }
+    }
+}
+
+impl<T> ArrayList<T> {
+    fn grow(&mut self) {
+        let (new_capacity, new_layout) = if self.capacity == 0 {
+            (
+                INITIAL_CAPACITY,
+                Layout::array::<T>(INITIAL_CAPACITY).unwrap(),
+            )
+        } else {
+            let new_capacity = self.capacity * 2;
+            let new_layout = Layout::array::<T>(new_capacity).unwrap();
+            (new_capacity, new_layout)
+        };
+
+        let new_ptr = if self.capacity == 0 {
+            unsafe { alloc::alloc(new_layout) as *mut T }
+        } else {
+            let old_layout = Layout::array::<T>(self.capacity).unwrap();
+            let old_ptr = self.ptr.as_ptr() as *mut u8;
+            unsafe { alloc::realloc(old_ptr, old_layout, new_layout.size()) as *mut T }
+        };
+
+        self.ptr = match NonNull::new(new_ptr) {
+            Some(ptr) => ptr,
+            None => alloc::handle_alloc_error(new_layout),
+        };
+        self.capacity = new_capacity;
     }
 }
 
 impl<T> Drop for ArrayList<T> {
     fn drop(&mut self) {
         unsafe {
-            // FIX: Memory leak issue on drop
-            let _ = Box::from_raw(self.buf.as_ptr());
+            ptr::drop_in_place(self.ptr.as_ptr() as *mut u8);
+            alloc::dealloc(
+                self.ptr.as_ptr() as *mut u8,
+                Layout::array::<T>(self.capacity).unwrap(),
+            );
         };
     }
 }
@@ -94,9 +172,8 @@ mod test {
     use super::*;
 
     #[test]
-    #[ignore = "Memory issue, fix later"]
     fn can_push_and_pop() {
-        let mut list = ArrayList::with_capacity(10);
+        let mut list = ArrayList::new();
         list.push(1);
         assert_eq!(list.as_slice(), &[1]);
 
@@ -106,13 +183,90 @@ mod test {
         list.push(3);
         assert_eq!(list.as_slice(), &[1, 2, 3]);
 
-        list.pop();
+        list.push(4);
+        assert_eq!(list.as_slice(), &[1, 2, 3, 4]);
+
+        assert_eq!(list.pop(), Some(4));
+        assert_eq!(list.as_slice(), &[1, 2, 3]);
+
+        assert_eq!(list.pop(), Some(3));
         assert_eq!(list.as_slice(), &[1, 2]);
 
-        list.pop();
+        assert_eq!(list.pop(), Some(2));
         assert_eq!(list.as_slice(), &[1]);
 
-        list.pop();
+        assert_eq!(list.pop(), Some(1));
         assert_eq!(list.as_slice(), &[]);
+
+        assert_eq!(list.pop(), None);
+        assert_eq!(list.len(), 0);
+        assert_eq!(list.capacity(), 4);
+    }
+
+    #[test]
+    fn can_grow_capacity() {
+        let mut list = ArrayList::new();
+        assert_eq!(list.capacity(), 0);
+
+        list.push(1);
+        assert_eq!(list.capacity(), 4);
+        list.push(2);
+        assert_eq!(list.capacity(), 4);
+        list.push(3);
+        assert_eq!(list.capacity(), 4);
+        list.push(4);
+        assert_eq!(list.capacity(), 4);
+
+        list.push(5);
+        assert_eq!(list.capacity(), 8);
+    }
+
+    #[test]
+    fn can_get() {
+        let list = ArrayList::from_iter([1, 2, 3]);
+
+        assert_eq!(list.get(0), Some(&1));
+        assert_eq!(list.get(1), Some(&2));
+        assert_eq!(list.get(2), Some(&3));
+        assert_eq!(list.get(3), None);
+    }
+
+    #[test]
+    fn can_get_mut() {
+        let mut list = ArrayList::from_iter([1, 2, 3]);
+
+        assert_eq!(list.get_mut(0), Some(&mut 1));
+        assert_eq!(list.get_mut(1), Some(&mut 2));
+        assert_eq!(list.get_mut(2), Some(&mut 3));
+        assert_eq!(list.get_mut(3), None);
+
+        *list.get_mut(0).unwrap() = 3;
+        *list.get_mut(1).unwrap() = 2;
+        *list.get_mut(2).unwrap() = 1;
+
+        assert_eq!(list.as_slice(), &[3, 2, 1]);
+    }
+
+    #[test]
+    fn can_insert() {
+        let mut list = ArrayList::from_iter([1, 3, 5]);
+
+        // Insert front
+        list.insert(0, 0);
+        assert_eq!(list.as_slice(), &[0, 1, 3, 5]);
+
+        // Insert middle
+        list.insert(2, 2);
+        assert_eq!(list.as_slice(), &[0, 1, 2, 3, 5]);
+
+        // Insert middle
+        list.insert(4, 4);
+        assert_eq!(list.as_slice(), &[0, 1, 2, 3, 4, 5]);
+
+        // Insert back
+        list.insert(6, 6);
+        assert_eq!(list.as_slice(), &[0, 1, 2, 3, 4, 5, 6]);
+
+        assert_eq!(list.len(), 7);
     }
 }
