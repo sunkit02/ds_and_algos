@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt::Debug;
 use std::hash::Hash;
 use std::ptr::NonNull;
 
@@ -7,7 +6,7 @@ use crate::datastructures::unsafe_doubly_linked_list::{DoublyLinkedList, Iter, N
 
 pub struct LRUCache<'a, K, V>
 where
-    K: Hash,
+    K: Eq + PartialEq + Hash + Clone,
 {
     values: DoublyLinkedList<(&'a K, V)>,
     map: HashMap<K, NonNull<Node<(&'a K, V)>>>,
@@ -16,7 +15,7 @@ where
 
 impl<'a, K, V> LRUCache<'a, K, V>
 where
-    K: Eq + PartialEq + Hash + Clone + Debug,
+    K: Eq + PartialEq + Hash + Clone,
     V: PartialEq,
 {
     pub fn new(max_size: usize) -> Self {
