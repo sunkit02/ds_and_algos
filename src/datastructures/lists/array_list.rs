@@ -87,6 +87,23 @@ impl<T> ArrayList<T> {
         self.len += 1;
     }
 
+    pub fn remove(&mut self, index: usize) -> T {
+        if index >= self.len {
+            panic!("Index out of bounds. Len: {}, Got: {}.", self.len, index);
+        } else {
+            unsafe {
+                let ptr = self.ptr.as_ptr().add(index);
+                let target_value = ptr::read(ptr);
+
+                let count = self.len - index - 1;
+                ptr::copy::<T>(ptr.add(1), ptr, count);
+
+                self.len -= 1;
+                return target_value;
+            }
+        }
+    }
+
     pub fn get(&self, index: usize) -> Option<&T> {
         if index >= self.len {
             return None;
@@ -113,10 +130,17 @@ impl<T> ArrayList<T> {
         return self.len;
     }
 
+    pub fn is_empty(&self) -> bool {
+        return self.len == 0;
+    }
+
+    pub fn clear(&mut self) {
+        while self.pop().is_some() {}
+    }
+
     pub fn as_slice(&self) -> &[T] {
         unsafe {
-            let buf = self.ptr.as_ptr();
-            let raw_slice = ptr::slice_from_raw_parts(buf, self.len);
+            let raw_slice = ptr::slice_from_raw_parts(self.ptr.as_ptr(), self.len);
 
             match raw_slice.as_ref() {
                 Some(slice) => slice,
@@ -158,12 +182,17 @@ impl<T> ArrayList<T> {
 impl<T> Drop for ArrayList<T> {
     fn drop(&mut self) {
         unsafe {
-            ptr::drop_in_place(self.ptr.as_ptr() as *mut u8);
-            alloc::dealloc(
-                self.ptr.as_ptr() as *mut u8,
-                Layout::array::<T>(self.capacity).unwrap(),
-            );
-        };
+            // Ensure that the `ptr` is not dangling by only dropping if
+            // capacity is greater than 0
+            if self.capacity > 0 {
+                ptr::drop_in_place(ptr::slice_from_raw_parts_mut(self.ptr.as_ptr(), self.len));
+
+                alloc::dealloc(
+                    self.ptr.as_ptr() as *mut u8,
+                    Layout::array::<T>(self.capacity).unwrap(),
+                );
+            }
+        }
     }
 }
 
@@ -268,5 +297,33 @@ mod test {
         assert_eq!(list.as_slice(), &[0, 1, 2, 3, 4, 5, 6]);
 
         assert_eq!(list.len(), 7);
+    }
+
+    #[test]
+    fn can_remove() {
+        let mut list = ArrayList::from_iter([1, 2, 3, 4, 5]);
+
+        assert_eq!(list.remove(0), 1); // Remove first
+        assert_eq!(list.remove(3), 5); // Remove last
+        assert_eq!(list.remove(1), 3); // Remove middle
+        assert_eq!(list.remove(0), 2); // Remove first
+        assert_eq!(list.remove(0), 4); // Remove first
+
+        assert!(list.is_empty());
+        assert_eq!(list.capacity(), 8);
+    }
+
+    #[test]
+    #[should_panic(expected = "Index out of bounds. Len: 0, Got: 0.")]
+    fn can_panic_when_removing_from_empty_list() {
+        let mut list = ArrayList::<i32>::new();
+        list.remove(0);
+    }
+
+    #[test]
+    #[should_panic(expected = "Index out of bounds. Len: 3, Got: 3.")]
+    fn can_panic_when_removing_out_of_bounds() {
+        let mut list = ArrayList::from_iter([1, 2, 3]);
+        list.remove(3);
     }
 }
