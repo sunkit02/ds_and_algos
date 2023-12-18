@@ -170,6 +170,22 @@ where
         }
         return vec;
     }
+
+    /// Returns an iterator over references to the underlying values *inorder*
+    pub fn iter(&self) -> Iter<T> {
+        let current = if let Some(root) = self.root {
+            Some(root)
+        } else {
+            None
+        };
+        Iter {
+            stack: Vec::with_capacity(self.len()),
+            current,
+            len: self.len(),
+            visited: 0,
+            marker: PhantomData,
+        }
+    }
 }
 
 impl<T> AVLTree<T>
@@ -458,6 +474,59 @@ where
     }
 }
 
+pub struct Iter<'a, T>
+where
+    T: PartialEq + PartialOrd,
+{
+    stack: Vec<NonNull<Node<T>>>,
+    current: Option<NonNull<Node<T>>>,
+    len: usize,
+    visited: usize,
+    // NOTE: Find out if it is correct to use `PhantomData<&'a T>` or
+    // `PhantomData<&'a AVLTree<T>>`
+    marker: PhantomData<&'a T>,
+}
+
+impl<'a, T> Iterator for Iter<'a, T>
+where
+    T: PartialEq + PartialOrd + Debug,
+{
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.visited == self.len {
+            return None;
+        }
+
+        if self.stack.is_empty() && self.current.is_none() {
+            return None;
+        }
+
+        unsafe {
+            while let Some(left) = self.current {
+                self.stack.push(left);
+                self.current = (*left.as_ptr()).left;
+            }
+
+            self.current = self.stack.pop();
+
+            if let Some(current) = self.current {
+                self.current = (*current.as_ptr()).right;
+
+                self.visited += 1;
+                return Some(&(*current.as_ptr()).value);
+            }
+        }
+
+        return None;
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = self.len - self.visited;
+        return (size, Some(size));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -528,5 +597,37 @@ mod tests {
         tree.debug_print();
 
         assert_eq!(tree.preorder_to_vec(), [13, 9, 7, 10, 15, 20])
+    }
+
+    #[test]
+    fn can_iter() {
+        let tree = AVLTree::from_iter([1, 2, 3, 4]);
+        let mut iter = tree.iter();
+
+        assert_eq!(iter.next(), Some(&1));
+        assert_eq!(iter.next(), Some(&2));
+        assert_eq!(iter.next(), Some(&3));
+        assert_eq!(iter.next(), Some(&4));
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn can_iter_size_hint() {
+        let tree = AVLTree::from_iter([1, 2, 3, 4]);
+        let mut iter = tree.iter();
+
+        assert_eq!(iter.size_hint(), (4, Some(4)));
+
+        iter.next();
+        assert_eq!(iter.size_hint(), (3, Some(3)));
+
+        iter.next();
+        assert_eq!(iter.size_hint(), (2, Some(2)));
+
+        iter.next();
+        assert_eq!(iter.size_hint(), (1, Some(1)));
+
+        iter.next();
+        assert_eq!(iter.size_hint(), (0, Some(0)));
     }
 }
