@@ -26,3 +26,6 @@ harness = false
 [[bench]]
 name = "lru_cache"
 harness = false
+
+[dependencies]
+rand = "0.8.5"
