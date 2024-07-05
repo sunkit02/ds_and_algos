@@ -1,5 +1,6 @@
 use std::{
     alloc::{self, Layout},
+    ops::{Index, IndexMut},
     ptr::{self, NonNull},
 };
 
@@ -193,6 +194,20 @@ impl<T> Drop for ArrayList<T> {
                 );
             }
         }
+    }
+}
+
+impl<T> Index<usize> for ArrayList<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.get(index).expect("index out of bounds")
+    }
+}
+
+impl<T> IndexMut<usize> for ArrayList<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.get_mut(index).expect("index out of bounds")
     }
 }
 
